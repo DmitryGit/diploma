@@ -1,0 +1,339 @@
+#include "utils.h"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cstring>
+#include <assert.h>
+#include <algorithm>
+#include <cmath>
+
+#if !defined(GLUT_WHEEL_UP)
+#  define GLUT_WHEEL_UP   3
+#  define GLUT_WHEEL_DOWN 4
+#endif
+
+//using namespace Graphics;
+
+Triangle *triangles;
+Point * points;
+
+
+
+
+Triangle* read_file(char* file_name)
+{
+    FILE *file;
+
+    char* s;
+    Point a, b, c;
+
+
+    s = (char*)malloc(30*sizeof(char));
+    file = fopen(file_name,"r");
+    fscanf(file, "BND3 %d", &N);
+
+    triangles = (Triangle*)malloc(N*sizeof(Triangle));
+
+
+
+    for (int i=0;i<N;i++)
+    {
+        fscanf(file, "%lf %lf %lf", &(a.x), &(a.y), &(a.z));
+        fscanf(file, "%lf %lf %lf", &(b.x), &(b.y), &(b.z));
+        fscanf(file, "%lf %lf %lf", &(c.x), &(c.y), &(c.z));
+        triangles[i] = Triangle(a,b,c);
+        fscanf(file, "%lf", &triangles[i].color);
+    }
+
+    fclose(file);
+    //return triangles;
+
+}
+
+void init(double Width, double Height, char * argv[])
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);// # чёрный
+  //  # буфер глубины: более близкие объекты рисуются впереди дальних:
+    glClearDepth(1.0);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    // включается освещение:
+    glEnable(GL_LIGHTING);
+//    # включается нулевой источник света (всего их 8):
+    glEnable(GL_LIGHT0);
+    //# включается управление материалом (цвет и отражающие способности) предметов при помощи функции glColor:
+    glEnable(GL_COLOR_MATERIAL);
+    //# параметры изображения объектов в зависимости от размеров окна:
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();// # восстанавливаем координаты мира
+    gluPerspective(180, Width/Height, 0.1, 10000.0);
+    glMatrixMode(GL_MODELVIEW);
+
+    read_file(argv[1]);
+    points = GenerateRandomPoints();
+
+}
+
+void reshape(int Width, int Height){
+    if (Height == 0){ Height = 1;}
+    glViewport(0, 0, Width, Height);
+    //# параметры изображения объектов в зависимости от размеров окна:
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity(); //# восстанавливаем координаты мира
+    gluPerspective(45.0, Width/Height, 0.1, 10000.0);
+    glMatrixMode(GL_MODELVIEW);
+}
+
+void display()
+{
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);// # очищаем экран
+    glLoadIdentity(); // # восстанавливаем координаты мира
+    //# перемещаем систему координат в точку, заданную параметрами X, Y, Z:
+    glTranslatef(moveX, moveY, ZOOM);// # на 10 пунктов вдоль оси Z в отрицательном направлении
+    //# вращаем куб вокруг вектора, заданного тремя параметрами:
+    glRotatef(rotX, 1.0, 0.0, 0.0);// # вокруг оси X
+    glRotatef(rotY, 0.0, 1.0, 0.0);// # вокруг оси Y
+    glRotatef(rotZ, 0.0, 0.0, 1.0);// # вокруг оси Z*/
+    //# цвет куба, параметры RGBA:
+    glColor4f(0.0, 0.7, 0.1, 1);
+    glutSolidCube(1);// # рисует куб с длиной стороны 3
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // см. выше
+
+
+    glBegin(GL_TRIANGLES);			// рисуем треугольники
+    for (int i=0;i<N;i++)
+    {
+        if (triangles[i].color){
+            glColor3d(0,1/triangles[i].color,0);      // цвет треугольника
+        } else {
+            glColor3d(1,0,0);      // цвет треугольника
+        }
+        glVertex3f(triangles[i].set[0].x, triangles[i].set[0].y, triangles[i].set[0].z);
+        glVertex3f(triangles[i].set[1].x, triangles[i].set[1].y, triangles[i].set[1].z);
+        glVertex3f(triangles[i].set[2].x, triangles[i].set[2].y, triangles[i].set[2].z);
+    }
+    glEnd();
+
+    DrowAxis();
+    ShowPoints(points);
+    MovePoints();
+    glutSwapBuffers();// # выводит всё на экран
+}
+
+void keypress(unsigned char key, int x, int y) {
+
+    switch (key){
+        case '\033':
+            exit(0);
+            break;
+        case 'a':
+            rotY += 10;
+            glutPostRedisplay();
+            break;
+        case 'd':
+            rotY -= 10;
+            glutPostRedisplay();
+            break;
+        case 'w':
+            rotX  += 10;
+            glutPostRedisplay();
+            break;
+        case 's':
+            rotX  -= 10;
+            glutPostRedisplay();
+            break;
+        }
+}
+
+void mouse(int button, int state, int x, int y) {
+    if (state == GLUT_UP ){
+        if (button == GLUT_WHEEL_UP) {
+            ZOOM +=100;
+            glutPostRedisplay ();
+        }
+        else if (button == GLUT_WHEEL_DOWN) {
+            ZOOM -=100;
+            glutPostRedisplay ();
+        }
+    }
+}
+
+void rotate(int x, int y){
+    if (((x - mouseOldX) > 0)&&((y - mouseOldY) > 0)) {
+        rotX +=10;
+        rotY +=10;
+    }
+    if (((x - mouseOldX) < 0)&&((y - mouseOldY) < 0)) {
+        rotX -=10;
+        rotY -=10;
+    }
+    if (((x - mouseOldX) > 0)&&((y - mouseOldY) < 0)) {
+        rotX +=10;
+        rotY -=10;
+    }
+    if (((x - mouseOldX) < 0)&&((y - mouseOldY) < 0)) {
+        rotX -= 1;
+        rotY -= 1;
+    }
+    if (((x - mouseOldX) < 0)&&((y - mouseOldY) > 0)) {
+        rotX -= 1;
+        rotY += 1;
+    }
+    if (((x - mouseOldX) < 0)&&((y - mouseOldY) == 0)) {
+        rotY -= 1;
+    }
+    if (((x - mouseOldX) > 0)&&((y - mouseOldY) == 0)) {
+        rotY += 1;
+    }
+    mouseOldX = x;
+    mouseOldY = y;
+    glutPostRedisplay();
+}
+
+//void glutPrint(float x, float y, void * font, char* text, float r, float g, float b, float a)
+//{
+//    if(!text || !strlen(text)) return;
+//    bool blending = false;
+//    if(glIsEnabled(GL_BLEND)) blending = true;
+//    glEnable(GL_BLEND);
+//    glColor4f(r,g,b,a);
+//    glRasterPos2f(x,y);
+//    while (*text) {
+//        glutBitmapCharacter(font, *text);
+//        text++;
+//    }
+//    if(!blending) glDisable(GL_BLEND);
+//}
+
+
+Point GenerateRandomPoint() {
+    return Point(1000,rand()%3000-1500,rand()%3000-1500);
+}
+
+Point * GenerateRandomPoints(){
+
+//    Point * points;
+//    int N=1000;
+    void * font = GLUT_BITMAP_9_BY_15;
+    srand( (unsigned)time( NULL ) );
+
+    points = (Point*)malloc(N*sizeof(Point));
+
+    for (int i=0; i<POINTS_NUMBER; i++){
+        points[i] = GenerateRandomPoint();
+    }
+    for (int i=0; i<POINTS_NUMBER; i++){
+        points[i].print();
+    }
+    return points;
+}
+
+void ShowPoints(Point * points){
+
+    for (int i=0; i<POINTS_NUMBER; i++){
+
+        glBegin(GL_POINTS);
+            glVertex3f(points[i].x , points[i].y,points[i].z);
+        glEnd();
+    }
+//    glutPostRedisplay ();
+}
+
+void DrowAxis(){
+    glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(10000,0,0);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(0,1000,0);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(0,0,1000);
+    glEnd();
+}
+
+
+
+void MovePoints(){
+    for (int i=0; i< POINTS_NUMBER; i++){
+        points[i].x-=1;
+    }
+    if (points[0].x<-1500){
+        GenerateRandomPoints();
+    }
+}
+
+template <typename T>
+inline char sign(T t) {
+    return (t > 0)? 1: (t < 0)? -1: 0;
+}
+
+bool isPointInsideTriangle(Triangle &t,Point k) {
+    Vector v0(Point(0,0,0)), v1(k,t.a), v2(k,t.b), v3(k,t.c);
+    if (v1 == v0 || v2 == v0 || v3 == v0)
+        return true;
+    real cos1 = v1.cos(v2), cos2 = v1.cos(v3), cos3 = v2.cos(v3);
+    switch( sign(cos1) + sign(cos2) + sign(cos3) ) {
+        case -3:
+            return true;
+        case 3:
+        case 1:
+            return false;
+        default:
+            // delta is required to prevent mashine imprecision
+            real delta = 0.0001;
+            return !(acos(cos1) + acos(cos2) + acos(cos3) < M_PI*2 - delta);
+    }
+}
+
+// коэффициент точки пересечения находим из условия перпендикулярности напрвляющего вектора
+// прямой и вектора, образованного заданной точкой и ее проекией (в качестве координат последней
+// берем параметрические уравнения прямой)
+Point getPointOnLineProjection(Line line,Point point) {
+    real coef = line.directionVector*Vector(line.a,point) /
+            (line.directionVector*line.directionVector);
+    return line.pointByCoef(coef);
+}
+
+// коэффициент точки пересечения находим подставляя параметрические уравнения прямой
+// в векторное уравнение плоскости
+Point getPlaneAndLineIntersection2(Triangle &plane,Line line) {
+    real coef = plane.getNormal()*Vector(line.a,plane.a) /
+            (plane.getNormal()*line.directionVector);
+    return line.pointByCoef(coef);
+}
+
+bool isPointInsideTriangle2(Triangle &t,Point k) {
+    Point p = getPointOnLineProjection(Line(t.a,t.b),t.c);
+    if (Vector(p,t.c).cos(Vector(p,k)) < 0)
+        return false;
+    p = getPointOnLineProjection(Line(t.c,t.b),t.a);
+    if (Vector(p,t.a).cos(Vector(p,k)) < 0)
+        return false;
+    p = getPointOnLineProjection(Line(t.c,t.a),t.b);
+    if (Vector(p,t.b).cos(Vector(p,k)) < 0)
+        return false;
+    return true;
+}
+
+bool doesLineIntersectTriangle(Triangle &triangle,Line line) {
+    Point intersection = getPlaneAndLineIntersection2(triangle,line);
+    if (isinf(intersection.x)) {
+        cerr << "INF" << endl;////////////////////////////////////////////////
+        /// TODO: here should be checking whether the line intersects
+        /// at least one of the triangles side
+        /// for this function for finding two lines intersection should be
+        /// implemented
+        return false;
+    }
+    if (isnan(intersection.x)) {
+        cerr << "NAN" << endl;////////////////////////////////////////////////
+        return false;
+    }
+    bool retVal = isPointInsideTriangle2(triangle,intersection);
+    return retVal;
+}
