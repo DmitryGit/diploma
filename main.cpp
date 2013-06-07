@@ -12,7 +12,7 @@ int main (int argc, char * argv[])
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH);
 	glutInitWindowSize(WindowWidth, WindowHeight);
-	glutInitWindowPosition(350, 200);
+    glutInitWindowPosition(500, 500);
     glutCreateWindow("Tie Fighter");
 	glutDisplayFunc(display);
     glutIdleFunc(display);
