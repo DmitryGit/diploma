@@ -90,11 +90,11 @@ void keypress(unsigned char key, int x, int y) {
         glutPostRedisplay();
         break;
     case 'z':
-        ZOOM +=100;
+        ZOOM +=0.1;
         glutPostRedisplay();
         break;
     case 'x':
-        ZOOM -=100;
+        ZOOM -=0.1;
         glutPostRedisplay();
         break;
     }

@@ -10,8 +10,6 @@
 #endif
 
 
-extern Point ORIGIN_POINT;
-
 void ShowPoints();
 void MovePoints();
 void DrowAxis();

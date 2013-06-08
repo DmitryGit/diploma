@@ -11,10 +11,8 @@
 #include <assimp/Importer.hpp> // C++ importer interface
 #include <assimp/scene.h> // Output data structure
 #include <assimp/postprocess.h> // Post processing flags
+#include <fstream>
 
-#define POINTS_RADIUS 1000
-#define POINT_SPEED 8000
-//#define POINTS_NUMBER 10
 double POINT_MASS = 2.7*pow(real(10),real(-27));
 Triangle *triangles;
 Point * points;
@@ -26,15 +24,16 @@ Point ORIGIN_POINT;
 double rotX = 0;
 double rotY = 0;
 double rotZ = 0;
-double ZOOM = -1000.0;
+double ZOOM = -10.0;
 double moveX = 0.0;
 double moveY = 0.0;
-int TRIANGLES_NUMBER;
 int WindowWidth = 640;
 int WindowHeight = 480;
 int points_area = 1000;
-int POINTS_NUMBER = 10000;
-
+int TRIANGLES_NUMBER;
+int POINTS_NUMBER = 100;
+int POINT_SPEED = 0.1;
+int POINTS_RADIUS = 5;
 
 Point maxPoint(){
     Point m;
@@ -90,25 +89,39 @@ void ShowPoints(){
     }
 }
 
-void read_file(char* file_name)
+void read_file(char* filename)
 {
-    FILE *file;
+    filebuf fb;
     Point a, b, c;
-    file = fopen(file_name,"r");
-    fscanf(file, "BND3 %d", &TRIANGLES_NUMBER);
-    triangles = new Triangle[TRIANGLES_NUMBER];
-    for (int i=0;i<TRIANGLES_NUMBER;i++)
-    {
-        fscanf(file, "%lf %lf %lf", &a.x, &a.y, &a.z);
-        fscanf(file, "%lf %lf %lf", &b.x, &b.y, &b.z);
-        fscanf(file, "%lf %lf %lf", &c.x, &c.y, &c.z);
-        triangles[i] = Triangle(a,b,c);
-//        triangles[i].print();
-        fscanf(file, "%lf", &triangles[i].color);
+    int i=0;
+    istream fileInputStream(&fb);
+    TRIANGLES_NUMBER = 0;
+    triangles = new Triangle[10000000];
+
+    if (!fb.open(filename,ios::in)) {
+        cerr << "An error occurred while opening file" << endl;
+        return;
     }
-    fclose(file);
-    MAX_POINT = maxPoint();
-    MIN_POINT = minPoint();
+
+    while(!fileInputStream.eof()) {
+        // read 3 points
+        fileInputStream >> a.x >> a.y >> a.z
+                        >> b.x >> b.y >> b.z
+                        >> c.x >> c.y >> c.z;
+        triangles[i] = Triangle(a,b,c);
+        triangles[i].color = 0;
+        i++;
+        TRIANGLES_NUMBER++;
+        if (fileInputStream.fail()) {
+            if (!fileInputStream.eof())
+                fileInputStream.clear();
+            break;
+        }
+    }
+        // scipping remaining characters in current string
+        while (!fileInputStream.eof() && fileInputStream.get() != '\n');
+    fb.close();
+    return;
 }
 
 void read_file_assimp(char* file_name)
@@ -119,7 +132,7 @@ void read_file_assimp(char* file_name)
         .ReadFile(file_name,aiProcess_Triangulate|aiProcess_FixInfacingNormals|aiProcess_FindDegenerates
                   |aiProcess_PreTransformVertices|aiProcess_OptimizeMeshes|aiProcess_FindInvalidData|aiProcess_RemoveRedundantMaterials);
     if (aiscene == NULL) {
-        cerr << "An error occurred while opening file" << endl;
+        cerr << "An error occurred while opening file: "<< file_name << endl;
         return;
     }
 
@@ -131,15 +144,15 @@ void read_file_assimp(char* file_name)
     for(unsigned int i = 0, k = 0;i < aiscene->mNumMeshes;++i) {
         if (aiscene->mMeshes[i]->HasFaces()) {
             for(unsigned int j = 0;j < aiscene->mMeshes[i]->mNumFaces;++j) {
-                    a.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].x*100;
-                    a.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].y*100;
-                    a.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].z*100;
-                    b.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].x*100;
-                    b.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].y*100;
-                    b.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].z*100;
-                    c.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].x*100;
-                    c.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].y*100;
-                    c.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].z*100;
+                    a.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].x;
+                    a.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].y;
+                    a.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[0]].z;
+                    b.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].x;
+                    b.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].y;
+                    b.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[1]].z;
+                    c.x = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].x;
+                    c.y = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].y;
+                    c.z = aiscene->mMeshes[i]->mVertices[aiscene->mMeshes[i]->mFaces[j].mIndices[2]].z;
                     triangles[k] = Triangle(a,b,c);
                     triangles[k].color = 0;
                     ++k;
@@ -152,21 +165,18 @@ void read_file_assimp(char* file_name)
 
 }
 
-
-void init(double Width, double Height, char * argv[])
+void init(double Width, double Height, char *filename)
 {
     srand((unsigned)time(NULL));
-//    cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
 
+    cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
     glClearColor(1, 1, 1, 0.0);
     //   буфер глубины: более близкие объекты рисуются впереди дальних:
     glClearDepth(1.0);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEPTH_TEST);
     // включается освещение:
-    glEnable(GL_LIGHTING);
     //     включается нулевой источник света (всего их 8):
-    glEnable(GL_LIGHT0);
     // включается управление материалом (цвет и отражающие способности) предметов при помощи функции glColor:
     glEnable(GL_COLOR_MATERIAL);
     // параметры изображения объектов в зависимости от размеров окна:
@@ -175,8 +185,8 @@ void init(double Width, double Height, char * argv[])
     gluPerspective(180, Width/Height, 0.1, 10000.0);
     glMatrixMode(GL_MODELVIEW);
 
-    read_file_assimp(argv[1]);
-//    read_file(argv[1]);
+//    read_file_assimp(filename);
+    read_file(filename);
     GenerateLines();
 }
 
@@ -190,39 +200,26 @@ void display(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);// # очищаем экран
     glLoadIdentity(); // # восстанавливаем координаты мира
     //# перемещаем систему координат в точку, заданную параметрами X, Y, Z:
-    glTranslatef(moveX, moveY, ZOOM);// # на 10 пунктов вдоль оси Z в отрицательном направлении
+    glTranslatef(moveX, moveY, ZOOM);
     //# вращаем тело вокруг вектора, заданного тремя параметрами:
     glRotatef(rotX, 1.0, 0.0, 0.0);// # вокруг оси X
     glRotatef(rotY, 0.0, 1.0, 0.0);// # вокруг оси Y
     glRotatef(rotZ, 0.0, 0.0, 1.0);// # вокруг оси Z*/
     //# цвет тела, параметры RGBA:
     glColor4f(0.0, 0.7, 0.1, 1);
-
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // см. выше
-
-    DrowAxis();
+//    DrowAxis();
 //    glBegin(GL_TRIANGLES);			// рисуем треугольники
+
     glBegin(GL_LINES);			// рисуем треугольники
     for (int i=0;i<TRIANGLES_NUMBER;i++)
     {
-        if (triangles[i].color){
-            glColor3d(0,1/triangles[i].color,0);      // цвет треугольника
-        } else {
-            glColor3d(0,1,0);      // цвет треугольника
-        }
+        glColor3d(0,1,0);      // цвет треугольника
         glVertex3f(triangles[i].a.x, triangles[i].set[0].y, triangles[i].set[0].z);
         glVertex3f(triangles[i].set[1].x, triangles[i].set[1].y, triangles[i].set[1].z);
         glVertex3f(triangles[i].set[2].x, triangles[i].set[2].y, triangles[i].set[2].z);
     }
     glEnd();
-
-
-//    for (int i=0; i<POINTS_NUMBER; i++){
-//        if (isPointInSphare(lines[i].set[0], body_sphare)) {
-//            all_count++;
-//            count++;
-//        }
-//    }
 
     // подсчет количества столкновений с молекулами
     for (int i=0; i<POINTS_NUMBER; i++){
@@ -239,15 +236,13 @@ void display(){
         }
     }
 
-//    current_impulse = count*pow(POINT_SPEED,2)*POINT_MASS;
-//    cout<<"Impuls on step: "<<current_impulse<<endl;
-//    if (!(step%5)){
+    if (!(step%5)){
         current_impulse = all_count*pow(real(POINT_SPEED),real(2))*POINT_MASS;
         cout.setf( ios::fixed);
-        cout<<setprecision (22)<<"Impuls on current step "<<": "<<current_impulse<<endl;
-        cout<<"points on current step "<<": "<<all_count<<endl;
+//        cout<<setprecision (22)<<"Impuls on current step "<<": "<<current_impulse<<endl;
+//        cout<<"points on current step "<<": "<<all_count<<endl;
         all_count = 0;
-//    }
+    }
     MovePoints();
     ShowPoints();
     glutSwapBuffers();

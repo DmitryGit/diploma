@@ -45,7 +45,7 @@ inline char sign(T t) {
     return (t > 0)? 1: (t < 0)? -1: 0;
 }
 
-void init(double Width, double Height, char * argv[]);
+void init(double Width, double Height, char *filename);
 void display();
 void read_file(char* file_name);
 void read_file_assimp(char* file_name);
