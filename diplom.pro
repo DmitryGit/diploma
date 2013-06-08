@@ -38,7 +38,7 @@ SOURCES += utils.cpp\
 include(qmlapplicationviewer/qmlapplicationviewer.pri)
 qtcAddDeployment()
 #LIBS += -lglut -lGLU
-LIBS += -framework OpenGL -framework GLUT
+LIBS += -framework OpenGL -framework GLUT -lassimp
 HEADERS += types.h\
     utils.h \
     drow_utils.h

@@ -13,19 +13,6 @@ struct Sphere;
 
 using namespace std;
 
-template <unsigned int T>
-struct Locus { // collection of points
-    Point set[T];
-    friend ostream& operator<<(ostream &os, const Locus &l) {
-        for(unsigned int i = 0;i < T - 1;i++)
-            os << l.set[i] << ", ";
-        os << l.set[T - 1];
-        return os;
-    }
-};
-
-
-
 struct Point {
     real x;
     real y;
@@ -66,6 +53,19 @@ struct Point {
         return ((x <= Max.x && y <= Max.y && z <= Max.z) && (x >= Min.x && y >= Min.y && z >= Min.z));
     }
 };
+
+template <unsigned int T>
+struct Locus { // collection of points
+    Point set[T];
+    friend ostream& operator<<(ostream &os, const Locus &l) {
+        for(unsigned int i = 0;i < T - 1;i++)
+            os << l.set[i] << ", ";
+        os << l.set[T - 1];
+        return os;
+    }
+};
+
+
 
 struct Sphere {
     Point center;

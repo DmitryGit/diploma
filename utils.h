@@ -22,7 +22,7 @@
 //#include <assimp/scene.h> // Output data structure
 //#include <assimp/postprocess.h> // Post processing flags
 
-#define POINTS_NUMBER 100000
+//#define POINTS_NUMBER 100000
 
 
 extern double rotX;
@@ -39,7 +39,6 @@ extern int WindowHeight;
 extern int points_area;
 
 using namespace std;
-
 
 template <typename T>
 inline char sign(T t) {

@@ -14,7 +14,7 @@
 
 #define POINTS_RADIUS 1000
 #define POINT_SPEED 8000
-//#define POINTS_NUMBER 10000
+//#define POINTS_NUMBER 10
 double POINT_MASS = 2.7*pow(real(10),real(-27));
 Triangle *triangles;
 Point * points;
@@ -33,7 +33,7 @@ int TRIANGLES_NUMBER;
 int WindowWidth = 640;
 int WindowHeight = 480;
 int points_area = 1000;
-
+int POINTS_NUMBER = 10000;
 
 
 Point maxPoint(){
@@ -103,7 +103,7 @@ void read_file(char* file_name)
         fscanf(file, "%lf %lf %lf", &b.x, &b.y, &b.z);
         fscanf(file, "%lf %lf %lf", &c.x, &c.y, &c.z);
         triangles[i] = Triangle(a,b,c);
-        triangles[i].print();
+//        triangles[i].print();
         fscanf(file, "%lf", &triangles[i].color);
     }
     fclose(file);
@@ -118,8 +118,6 @@ void read_file_assimp(char* file_name)
     aiScene *aiscene = (aiScene*)importer
         .ReadFile(file_name,aiProcess_Triangulate|aiProcess_FixInfacingNormals|aiProcess_FindDegenerates
                   |aiProcess_PreTransformVertices|aiProcess_OptimizeMeshes|aiProcess_FindInvalidData|aiProcess_RemoveRedundantMaterials);
-
-    cout<<endl<<endl<<endl<<endl<<"START: "<<endl;
     if (aiscene == NULL) {
         cerr << "An error occurred while opening file" << endl;
         return;
@@ -129,8 +127,6 @@ void read_file_assimp(char* file_name)
         if (aiscene->mMeshes[i]->HasFaces())
             TRIANGLES_NUMBER+=aiscene->mMeshes[i]->mNumFaces;
     }
-    cout<<"TRIANGLES"<<TRIANGLES_NUMBER<<endl;
-    cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
     triangles = new Triangle[TRIANGLES_NUMBER];
     for(unsigned int i = 0, k = 0;i < aiscene->mNumMeshes;++i) {
         if (aiscene->mMeshes[i]->HasFaces()) {
@@ -151,7 +147,6 @@ void read_file_assimp(char* file_name)
         }
     }
 
-    cout<<"End Reading";
     MAX_POINT = maxPoint();
     MIN_POINT = minPoint();
 
@@ -161,7 +156,7 @@ void read_file_assimp(char* file_name)
 void init(double Width, double Height, char * argv[])
 {
     srand((unsigned)time(NULL));
-    cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
+//    cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
 
     glClearColor(1, 1, 1, 0.0);
     //   буфер глубины: более близкие объекты рисуются впереди дальних:
@@ -222,35 +217,37 @@ void display(){
     glEnd();
 
 
-    for (int i=0; i<POINTS_NUMBER; i++){
-        if (isPointInSphare(lines[i].set[0], body_sphare)) {
-            all_count++;
-            count++;
-        }
-    }
+//    for (int i=0; i<POINTS_NUMBER; i++){
+//        if (isPointInSphare(lines[i].set[0], body_sphare)) {
+//            all_count++;
+//            count++;
+//        }
+//    }
 
     // подсчет количества столкновений с молекулами
     for (int i=0; i<POINTS_NUMBER; i++){
-                        all_count++;
-                        count++;
-//        if (isPointInSphare(lines[i].set[0], body_sphare)) {
-//            for (int j=0; j<TRIANGLES_NUMBER; j++){
-//                if (doesLineIntersectTriangle(triangles[j], lines[i])){
-//                    all_count++;
-//                    count++;
-//                }
-//            }
-//        }
+        if (isPointInSphare(lines[i].set[0], body_sphare)) {
+            for (int j=0; j<TRIANGLES_NUMBER; j++){
+                if (doesLineIntersectTriangle(triangles[j], lines[i])){
+                    all_count++;
+                    count++;
+//                    cout<<"Point intersect trasngle"<<endl;
+//                    cout<<"triangle"<<endl;
+//                    triangles[j].print();
+                }
+            }
+        }
     }
 
 //    current_impulse = count*pow(POINT_SPEED,2)*POINT_MASS;
 //    cout<<"Impuls on step: "<<current_impulse<<endl;
-    if (!(step%5)){
+//    if (!(step%5)){
         current_impulse = all_count*pow(real(POINT_SPEED),real(2))*POINT_MASS;
         cout.setf( ios::fixed);
         cout<<setprecision (22)<<"Impuls on current step "<<": "<<current_impulse<<endl;
+        cout<<"points on current step "<<": "<<all_count<<endl;
         all_count = 0;
-    }
+//    }
     MovePoints();
     ShowPoints();
     glutSwapBuffers();
@@ -307,16 +304,16 @@ bool isPointInsideTriangle2(Triangle &t,Point k) {
 
 bool doesLineIntersectTriangle(Triangle &triangle,Line line) {
     Point intersection = getPlaneAndLineIntersection2(triangle,line);
-    if (isinf(intersection.x)) {
-        cerr << "INF" << endl;
-        return false;
-    }
-    if (isnan(intersection.x)) {
-        cerr << "NAN" << endl;
-        return false;
-    }
+//    if (isinf(intersection.x)) {
+//        cerr << "INF" << endl;
+//        return false;
+//    }
+//    if (isnan(intersection.x)) {
+//        cerr << "NAN" << endl;
+//        return false;
+//    }
     bool retVal = isPointInsideTriangle2(triangle,intersection);
-    cout<<retVal;
+//    cout<<retVal;
     return retVal;
 }
 
