@@ -18,7 +18,6 @@ struct Point {
     real y;
     real z;
 
-
     Point(): x(0),y(0),z(0) {}
     Point(real _x, real _y, real _z): x(_x),y(_y),z(_z) {}
     Point(const Point &p) {x = p.x;y = p.y;z = p.z;}
@@ -36,10 +35,13 @@ struct Point {
         return !(*this == b);
     }
     bool operator>=(Point a) const {
-        return (x >= a.x && y >= a.y && z >= a.z);
+        return sqrt(pow(a.x,2) + pow(a.y,2) + pow(a.z,2)) >= sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+
+//        return (x >= a.x && y >= a.y && z >= a.z);
     }
     bool operator<=(Point a) const {
-        return (x <= a.x && y <= a.y && z <= a.z);
+        return sqrt(pow(a.x,2) + pow(a.y,2) + pow(a.z,2)) <= sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+//        return (x <= a.x && y <= a.y && z <= a.z);
     }
 
     Point operator+(int n) const {
@@ -49,6 +51,10 @@ struct Point {
     void print() {
         std::cout<<'('<<x<<';'<<y<<';'<<z<<')'<<std::endl;
     }
+    double distanceToOriginPoint() {
+        return sqrt(x*x + y*y + z*z);
+    }
+
     bool isInArea(Point Min, Point Max) {
         return ((x <= Max.x && y <= Max.y && z <= Max.z) && (x >= Min.x && y >= Min.y && z >= Min.z));
     }
@@ -64,7 +70,6 @@ struct Locus { // collection of points
         return os;
     }
 };
-
 
 
 struct Sphere {
@@ -128,7 +133,6 @@ struct Vector: public Point {
 };
 
 
-
 struct Triangle : public Locus<3> {
     Triangle(): a(set[0]), b(set[1]), c(set[2]) {}
     Triangle(const Triangle &tP): a(set[0]), b(set[1]), c(set[2]) {
@@ -188,7 +192,6 @@ struct Line: public Locus<2> {
         return *this;
     }
 
-
     Point& a;
     Point& b;
     Point pointByCoef(real coef) {
@@ -197,11 +200,5 @@ struct Line: public Locus<2> {
                      a.z + coef*directionVector.z);
     }
 };
-
-
-
-
-
-
 
 #endif

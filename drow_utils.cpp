@@ -66,7 +66,6 @@ void reshape(int Width, int Height){
 }
 
 
-
 void keypress(unsigned char key, int x, int y) {
 
     switch (key){
@@ -75,29 +74,24 @@ void keypress(unsigned char key, int x, int y) {
         break;
     case 'a':
         rotY += 10;
-        glutPostRedisplay();
         break;
     case 'd':
         rotY -= 10;
-        glutPostRedisplay();
         break;
     case 'w':
         rotX  += 10;
-        glutPostRedisplay();
         break;
     case 's':
         rotX  -= 10;
-        glutPostRedisplay();
         break;
     case 'z':
         ZOOM +=0.1;
-        glutPostRedisplay();
         break;
     case 'x':
         ZOOM -=0.1;
-        glutPostRedisplay();
         break;
     }
+    glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y) {

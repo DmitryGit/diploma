@@ -52,7 +52,6 @@ void read_file_assimp(char* file_name);
 
 
 Point GenerateRandomPoint(Sphere S, Sphere s);
-Point GenerateRandomPoint();
 Point getPlaneAndLineIntersection2(Triangle &plane,Line line);
 Line* GenerateLine(Point a, Point b);
 void GenerateLines();
@@ -70,7 +69,6 @@ Point getPlaneAndLineIntersection2(Triangle &plane,Line line);
 bool isPointInsideTriangle2(Triangle &t,Point k);
 bool doesLineIntersectTriangle(Triangle &triangle,Line line);
 double getDistanceBetweenPoints(Point a,Point b);
-Point GenerateRandomPoint(Sphere S, Sphere s);
 Line* GenerateLine(Point a, Point b);
 void GenerateLines();
 

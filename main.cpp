@@ -53,12 +53,12 @@ int main (int argc, char * argv[])
         exit(1);
     }
     filename = argv[optind];
-
     std::cout<<"ALtitude"<<altitude<<endl;
-	glutInit(&argc, argv);
+
+    glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH);
 	glutInitWindowSize(WindowWidth, WindowHeight);
-    glutInitWindowPosition(500, 500);
+    glutInitWindowPosition(700, 700);
     glutCreateWindow("Tie Fighter");
 	glutDisplayFunc(display);
     glutIdleFunc(display);
