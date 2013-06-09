@@ -21,10 +21,12 @@ Point MAX_POINT;
 Point MIN_POINT;
 Point ORIGIN_POINT;
 
-double POINT_MASS = 2.7*pow(real(10),real(-27));//4,6502 х 10-26
+double POINT_MASS = 46.6502*pow(real(10),real(-26));//4,6502 х 10-26
+double POINT_MASS_MOLAR = 28;//4,6502 х 10-26
 //double POINT_MASS = 4.6502*pow(real(10),real(-26));
-namespace Constans {
+namespace Constants {
     double P0 = 101325.0; //стандартное атмосферное давление на уровне моря (Па)
+//    double P0 = 101325.0; //стандартное атмосферное давление на уровне моря (Па)
     double T0 = 288.15; //стандартная температура на уровне моря (K)
     double g = 9.80665; //ускорение свободного падения над поверхностью Земли (m/sec2)
     double L = 0.0065; //скорость падения температуры с высотой, в пределах тропосферы (L/m)
@@ -33,8 +35,9 @@ namespace Constans {
     double T = 250; //температура в стратосфере (−56,5 - 0,8 °С) (К)
     double k = 1.38006488*pow(real(10),real(-23)); //постоянноая Больцмана (Дж/К)
     double n0 = 2.7*pow(real(10),real(25)); //кол-во молекул газа в единице обьема при НУ
-    double h0 = 1000; //высота над уровнет моря при НУ ?????
-    double pi = 3.14;
+    double h0 = 0; //высота над уровнет моря при НУ ?????
+    double m0 = POINT_MASS;
+    double pi = 3.14159265359;
 }
 double rotX = 0;
 double rotY = 0;
@@ -46,20 +49,22 @@ int WindowWidth = 640;
 int WindowHeight = 480;
 int points_area = 1000;
 int TRIANGLES_NUMBER;
-int POINTS_NUMBER = 10000;
+unsigned int POINTS_NUMBER = 10000;
 int POINT_SPEED = 3874; //первая космичческая (м/c)
-int POINTS_RADIUS = 2;
+double POINTS_RADIUS;
 
 
 
 double getConcentration (double H) {
+    using namespace Constants;
     double n, V;
-
-    n = Constans::n0*exp(-POINT_MASS*Constans::g*(H-Constans::h0)/Constans::k*Constans::T); //  кол-во молекул в м3 на высоте H
-
-    V = 4/3*Constans::pi*POINTS_RADIUS*POINTS_RADIUS*POINTS_RADIUS;
-    cout<<"N: "<<-POINT_MASS*Constans::g*(H-Constans::h0)/Constans::k*Constans::T<<endl<<"V: "<<V<<endl;
-    cout<<setprecision(220)<<"n*V: "<<n*V;
+    double a = m0*g*H;
+    double b = k*T;
+    cout<<exp(-a/b)<<endl;
+    n = n0*exp(-a/b); //  кол-во молекул в м3 на высоте H
+    V = 4/3*pi*pow(POINTS_RADIUS,real(3));//*POINTS_RADIUS*POINTS_RADIUS;
+//    cout<<"N: "<<n<<endl<<"V: "<<V<<endl;
+//    cout<<setprecision(220)<<"n*V: "<<n*V;
     return n*V;
 }
 
@@ -74,7 +79,6 @@ Point maxPoint(){
         if (triangles[i].a.distanceToOriginPoint()>=getDistanceBetweenPoints(m, ORIGIN_POINT)){m = triangles[i].a;}
         if (triangles[i].b.distanceToOriginPoint()>=getDistanceBetweenPoints(m, ORIGIN_POINT)){m = triangles[i].b;}
         if (triangles[i].c.distanceToOriginPoint()>=getDistanceBetweenPoints(m, ORIGIN_POINT)){m = triangles[i].c;}
-        m.print();
     }
     return m;
 }
@@ -100,22 +104,20 @@ Point minPoint(){
 }
 
 bool isPointInSphare(Point p, Sphere s) {
-    return (sqrt(pow(p.x - s.center.x,real(2)) + pow(p.y - s.center.y,real(2)) + pow(p.z - s.center.z,real(2))) < s.radius);
+    return (p.distanceToOriginPoint() < s.radius);
 }
 
 void MovePoints(){
     for (int i=0; i< POINTS_NUMBER; i++){
         Sphere body_sphare(ORIGIN_POINT, getDistanceBetweenPoints(MAX_POINT,ORIGIN_POINT));
         Sphere big_sphape(ORIGIN_POINT, POINTS_RADIUS);
-        if (!(isPointInSphare(lines[i].set[0], big_sphape)) || (isPointInSphare(lines[i].set[0], body_sphare))){
-//        if ((isPointInSphare(lines[i].set[0], body_sphare))){
-            Line *tmp = GenerateLine(GenerateRandomPoint(big_sphape,body_sphare),GenerateRandomPoint(big_sphape,body_sphare));
+        if (!isPointInSphare(lines[i].set[0], big_sphape)){
+            Line *tmp = GenerateRandomLine();
             memcpy(lines + i,tmp ,sizeof(Line));
             delete tmp;
 //            cout<<"Delete point"<<endl;
         }
         lines[i].set[0] = lines[i].set[0]+lines[i].directionVector*0.001;
-
 
 //        lines[i].set[1] = lines[i].set[1]+lines[i].directionVector;
 //        lines[i].set[0].x -=0.01*lines[i].directionVector.x;
@@ -218,25 +220,20 @@ void read_file_assimp(char* file_name)
 void init(double Width, double Height, char *filename)
 {
     srand((unsigned)time(NULL));
-    int altitude =1117;
-    double distance = 3;
+    int altitude =40500;
+    double distance = 2;
 //    read_file_assimp(filename);
     read_file(filename);
 
     POINTS_RADIUS = calculatePointsRadius(distance);
     POINTS_NUMBER = getConcentration(altitude);
-    cout<<endl<<endl<<endl<<"Radius"<< POINTS_RADIUS <<endl<<endl;
+    cout<<endl<<endl<<endl<<"Radius "<< POINTS_RADIUS <<endl<<endl;
 
-//    cout<<endl<<endl<<rand()<<endl<<time(NULL);
     cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
     glClearColor(1, 1, 1, 0.0);
     glClearDepth(1.0);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEPTH_TEST);
-    // включается освещение:
-    // включается нулевой источник света (всего их 8):
-    // включается управление материалом (цвет и отражающие способности) предметов при помощи функции glColor:
-    glEnable(GL_COLOR_MATERIAL);
     // параметры изображения объектов в зависимости от размеров окна:
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();// # восстанавливаем координаты мира
@@ -281,12 +278,15 @@ void display(){
     for (int i=0; i<POINTS_NUMBER; i++){
         if (isPointInSphare(lines[i].set[0], body_sphare)) {
             for (int j=0; j<TRIANGLES_NUMBER; j++){
+//                cout<<"Point["<<i<<"] in sphare, on step: "<<step<<endl;
                 if (doesLineIntersectTriangle(triangles[j], lines[i])){
                     all_count++;
                     count++;
-//                    cout<<"Point intersect"<<endl;
-//                    cout<<"triangle"<<endl;
-//                    triangles[j].print();
+//                `    cout<<"Point["<<i<<"] intersect on step: "<<step<<endl;
+                    Line *tmp = GenerateRandomLine();
+                    memcpy(lines + i,tmp ,sizeof(Line));
+                    delete tmp;
+                    break;
                 }
             }
         }
@@ -391,24 +391,40 @@ Point getRandomPointOnSphere(Sphere s) {
             .resized(s.radius);
 }
 
+Point getRandomBetweenSpheres(Sphere S, Sphere s) {
+    Point P;
+    do {
+        P.x = (rand()*2.0/RAND_MAX - 1)*S.radius;
+        P.y = (rand()*2.0/RAND_MAX - 1)*S.radius;
+        P.z = (rand()*2.0/RAND_MAX - 1)*S.radius;
+    } while(getDistanceBetweenPoints(P,ORIGIN_POINT) < s.radius);
+    return P;
+}
+
 Line* GenerateLine(Point a, Point b){
     return new Line(a, b);
 }
 
-void GenerateLines(){
+Line* GenerateLine(Point a, Vector v){
+    return new Line(a, v);
+}
+
+Line* GenerateRandomLine(){
     Point a,b;
+    Vector dir_v;
     Sphere body_sphare(ORIGIN_POINT, getDistanceBetweenPoints(MAX_POINT,ORIGIN_POINT));
     Sphere big_sphape(ORIGIN_POINT, POINTS_RADIUS);
-    Vector dir_v;
+    a = getRandomPointOnSphere(big_sphape);
+    b = getRandomPointOnSphere(big_sphape);
+    dir_v = Vector(a,b);
+//    return GenerateLine(a,dir_v);
+    return GenerateLine(getRandomBetweenSpheres(big_sphape, body_sphare),dir_v);
+}
 
+void GenerateLines(){
     lines = (Line*)malloc(POINTS_NUMBER*sizeof(Line));
     for (int i=0; i<POINTS_NUMBER; i++){
-//        a = GenerateRandomPoint(big_sphape, body_sphare);
-//        b = GenerateRandomPoint(big_sphape, body_sphare);
-        a = getRandomPointOnSphere(big_sphape);
-        b = getRandomPointOnSphere(big_sphape);
-        dir_v = Vector(a,b);
-        Line *tmp = GenerateLine(a,dir_v);
+        Line *tmp = GenerateRandomLine();
         memcpy(lines + i,tmp ,sizeof(Line));
         delete tmp;
     }

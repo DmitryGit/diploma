@@ -70,6 +70,7 @@ bool isPointInsideTriangle2(Triangle &t,Point k);
 bool doesLineIntersectTriangle(Triangle &triangle,Line line);
 double getDistanceBetweenPoints(Point a,Point b);
 Line* GenerateLine(Point a, Point b);
+Line* GenerateRandomLine();
 void GenerateLines();
 
 double getDistanceBetweenPoints(Point a,Point b);
