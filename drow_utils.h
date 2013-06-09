@@ -11,7 +11,7 @@
 
 
 void ShowPoints();
-void MovePoints();
+void movePoints();
 void DrowAxis();
 void keypress(unsigned char key, int x, int y);
 void reshape(int Width, int Height);

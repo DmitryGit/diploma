@@ -1,18 +1,31 @@
 #include "utils.h"
 #include "drow_utils.h"
+
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <vector>
 #include <cstring>
-#include <assert.h>
-#include <algorithm>
-#include <cmath>
 #include <assimp/Importer.hpp> // C++ importer interface
 #include <assimp/scene.h> // Output data structure
 #include <assimp/postprocess.h> // Post processing flags
 #include <fstream>
+#include <unistd.h>
+#include <cmath>
+#include <algorithm>
+#include <cstdio>
+#include <vector>
+#include <errno.h>
+#include <unistd.h>
+#include <assert.h>
+#include <limits>
+#include <pthread.h>
+#include <signal.h>
 
+
+#define min(a,b) \
+  ({ __typeof__ (a) _a = (a); \
+      __typeof__ (b) _b = (b); \
+    _a < _b ? _a : _b; })
 
 Triangle *triangles;
 Point * points;
@@ -50,7 +63,7 @@ int WindowHeight = 480;
 int points_area = 1000;
 int TRIANGLES_NUMBER;
 unsigned int POINTS_NUMBER = 10000;
-int POINT_SPEED = 3874; //первая космичческая (м/c)
+int POINT_SPEED = 8000;
 double POINTS_RADIUS;
 
 
@@ -60,11 +73,12 @@ double getConcentration (double H) {
     double n, V;
     double a = m0*g*H;
     double b = k*T;
-    cout<<exp(-a/b)<<endl;
     n = n0*exp(-a/b); //  кол-во молекул в м3 на высоте H
     V = 4/3*pi*pow(POINTS_RADIUS,real(3));//*POINTS_RADIUS*POINTS_RADIUS;
 //    cout<<"N: "<<n<<endl<<"V: "<<V<<endl;
-//    cout<<setprecision(220)<<"n*V: "<<n*V;
+    cout<<"Concentration (in m3): "<<n<<endl;
+    cout<<"V: "<<V<<endl;
+
     return n*V;
 }
 
@@ -107,27 +121,71 @@ bool isPointInSphare(Point p, Sphere s) {
     return (p.distanceToOriginPoint() < s.radius);
 }
 
-void MovePoints(){
+
+void movePointsArray(void *_args){
+    pair<Line*,unsigned long long> *args = (pair<Line*,unsigned long long>*)_args;
+    Line *points = args->first;
+    int num = args->second;
+    cout<<"in thread!";
+    for (int i=0; i< num; ++i){
+        Sphere big_sphape(ORIGIN_POINT, POINTS_RADIUS);
+        if (!isPointInSphare(points[i].set[0], big_sphape)){
+            Line *tmp = GenerateRandomLine();
+            memcpy(lines + i,tmp ,sizeof(Line));
+            delete tmp;
+        }
+        points[i].set[0] = points[i].set[0]+points[i].directionVector*0.5;
+    }
+
+
+}
+
+void movePoints(){
     for (int i=0; i< POINTS_NUMBER; i++){
-        Sphere body_sphare(ORIGIN_POINT, getDistanceBetweenPoints(MAX_POINT,ORIGIN_POINT));
         Sphere big_sphape(ORIGIN_POINT, POINTS_RADIUS);
         if (!isPointInSphare(lines[i].set[0], big_sphape)){
             Line *tmp = GenerateRandomLine();
             memcpy(lines + i,tmp ,sizeof(Line));
             delete tmp;
-//            cout<<"Delete point"<<endl;
         }
-        lines[i].set[0] = lines[i].set[0]+lines[i].directionVector*0.001;
-
-//        lines[i].set[1] = lines[i].set[1]+lines[i].directionVector;
-//        lines[i].set[0].x -=0.01*lines[i].directionVector.x;
-//        lines[i].set[0].y -=0.01*lines[i].directionVector.y;
-//        lines[i].set[0].z -=0.01*lines[i].directionVector.z;
-//        lines[i].set[1].x -=0.01*lines[i].directionVector.x;
-//        lines[i].set[1].y -=0.01*lines[i].directionVector.y;
-//        lines[i].set[1].z -=0.01*lines[i].directionVector.z;
+        lines[i].set[0] = lines[i].set[0]+lines[i].directionVector*0.1;
 
     }
+//    int threadNum = 2;
+//    if(threadNum == 1) {
+////        pair<Particle*,unsigned long long> args(particles, electronsNumber + ionsNumber);
+////        processParticlesArray(&args);
+//    } else {
+//        pthread_t *threads = new pthread_t[threadNum];
+
+
+//        int pointsPerThread = ceil(1.0*(POINTS_NUMBER)/threadNum);
+//        int firtsPointForCurrentThread = 0;
+//        int threadsStarted = 0;
+////        COUT("---------------------------------------------------------------------------");
+////        COUT("num = " << electronsNumber+ionsNumber);
+//        pair<Line*,int> **threadArgs = new pair<Line*,int>*[threadNum];
+//        for(;threadsStarted < threadNum;++threadsStarted) {
+//            if (firtsPointForCurrentThread >= POINTS_NUMBER)
+//                break;
+//            threadArgs[threadsStarted] =
+//                    new pair<Point*,int>(lines + firtsPointForCurrentThread,
+//                                                           min(POINTS_NUMBER - firtsPointForCurrentThread,(int)pointsPerThread));
+//            assert(pthread_create(threads + threadsStarted,NULL,movePointsArray,threadArgs[threadsStarted]) == 0);
+//            firtsPointForCurrentThread += pointsPerThread;
+//        }
+
+//        // wait for all threads
+//        for(int t = 0;t < threadsStarted;++t)
+//            pthread_join(threads[t], NULL);
+
+//        // clean threads args
+//        for(int t = 0;t < threadsStarted;++t)
+//            delete threadArgs[t];
+
+//        delete threadArgs;
+//        delete threads;
+//    }
 }
 
 void ShowPoints(){
@@ -211,41 +269,31 @@ void read_file_assimp(char* file_name)
             }
         }
     }
-    cout<<triangles;
+//    cout<<triangles;
     MAX_POINT = maxPoint();
     MIN_POINT = minPoint();
 
 }
 
-void init(double Width, double Height, char *filename)
+void init(char *filename, double height, double radius)
 {
     srand((unsigned)time(NULL));
-    int altitude =40500;
-    double distance = 2;
-//    read_file_assimp(filename);
-    read_file(filename);
+    read_file_assimp(filename);
+//    read_file(filename);
 
-    POINTS_RADIUS = calculatePointsRadius(distance);
-    POINTS_NUMBER = getConcentration(altitude);
+    POINTS_RADIUS = calculatePointsRadius(radius);
+    POINTS_NUMBER = getConcentration(height);
     cout<<endl<<endl<<endl<<"Radius "<< POINTS_RADIUS <<endl<<endl;
 
     cout<<endl<<endl<<endl<<endl<<"Points Number: "<<POINTS_NUMBER<<endl;
-    glClearColor(1, 1, 1, 0.0);
-    glClearDepth(1.0);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_DEPTH_TEST);
-    // параметры изображения объектов в зависимости от размеров окна:
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();// # восстанавливаем координаты мира
-    gluPerspective(180, Width/Height, 0.1, 10000.0);
-    glMatrixMode(GL_MODELVIEW);
 
     GenerateLines();
 }
 
 void display(){   
     Sphere body_sphare(ORIGIN_POINT, getDistanceBetweenPoints(MAX_POINT,ORIGIN_POINT));
-    double current_impulse;
+    static int index;
+    static double current_impulse;
     static unsigned int all_count=0;
     unsigned int count=0;
     static int step;
@@ -258,31 +306,23 @@ void display(){
     glRotatef(rotX, 1.0, 0.0, 0.0);// # вокруг оси X
     glRotatef(rotY, 0.0, 1.0, 0.0);// # вокруг оси Y
     glRotatef(rotZ, 0.0, 0.0, 1.0);// # вокруг оси Z
-    //# цвет тела, параметры RGBA:
-    glColor4f(0.0, 0.7, 0.1, 1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // см. выше
-//    DrowAxis();
-//    glBegin(GL_TRIANGLES);			// рисуем треугольники
-
-    glBegin(GL_LINES);			// рисуем треугольники
+    glBegin(GL_LINES);
+    glColor3d(0,1,0);      // цвет треугольника
     for (int i=0;i<TRIANGLES_NUMBER;i++)
     {
-        glColor3d(0,1,0);      // цвет треугольника
-        glVertex3f(triangles[i].a.x, triangles[i].set[0].y, triangles[i].set[0].z);
-        glVertex3f(triangles[i].set[1].x, triangles[i].set[1].y, triangles[i].set[1].z);
-        glVertex3f(triangles[i].set[2].x, triangles[i].set[2].y, triangles[i].set[2].z);
+        for (int j=0; j<3; j++){
+            glVertex3f(triangles[i].set[j].x, triangles[i].set[j].y, triangles[i].set[j].z);
+        }
     }
     glEnd();
-
     // подсчет количества столкновений с молекулами
     for (int i=0; i<POINTS_NUMBER; i++){
         if (isPointInSphare(lines[i].set[0], body_sphare)) {
             for (int j=0; j<TRIANGLES_NUMBER; j++){
-//                cout<<"Point["<<i<<"] in sphare, on step: "<<step<<endl;
                 if (doesLineIntersectTriangle(triangles[j], lines[i])){
                     all_count++;
                     count++;
-//                `    cout<<"Point["<<i<<"] intersect on step: "<<step<<endl;
+                    triangles[j].color = 1;
                     Line *tmp = GenerateRandomLine();
                     memcpy(lines + i,tmp ,sizeof(Line));
                     delete tmp;
@@ -291,19 +331,20 @@ void display(){
             }
         }
     }
-
-    if (!(step%100)){
-        current_impulse = all_count*pow(real(POINT_SPEED),real(2))*POINT_MASS;
+    if (!(step%20)){
+        current_impulse = all_count*pow(real(POINT_SPEED),real(2))*POINT_MASS*100000000000000;
+//        impulse += current_impulse;
         cout.setf( ios::fixed);
 //        cout<<setprecision (22)<<"Impuls on current step "<<": "<<current_impulse<<endl;
-//        cout<<"points on current step "<<": "<<all_count<<endl;
+        cout<<setprecision (22)<<current_impulse<<endl;
+        index++;
+//        cout<<"current step "<<": "<<step<<endl;
         all_count = 0;
     }
-    MovePoints();
+    movePoints();
     ShowPoints();
     glutSwapBuffers();
 }
-
 
 bool isPointInsideTriangle(Triangle &t,Point k) {
     Vector v0(Point(0,0,0)), v1(k,t.a), v2(k,t.b), v3(k,t.c);
@@ -417,8 +458,9 @@ Line* GenerateRandomLine(){
     a = getRandomPointOnSphere(big_sphape);
     b = getRandomPointOnSphere(big_sphape);
     dir_v = Vector(a,b);
-//    return GenerateLine(a,dir_v);
-    return GenerateLine(getRandomBetweenSpheres(big_sphape, body_sphare),dir_v);
+    dir_v = dir_v/dir_v.length();
+    return GenerateLine(a,dir_v);
+//    return GenerateLine(getRandomBetweenSpheres(big_sphape, body_sphare),dir_v);
 }
 
 void GenerateLines(){
